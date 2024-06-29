@@ -1,0 +1,13 @@
+services:
+  server:
+    build: ./server
+    restart: on-failure
+  nginx: 
+    image: nginx:latest
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: on-failure
+    depends_on:
+      - server
+    ports:
+      - "45276:80"
