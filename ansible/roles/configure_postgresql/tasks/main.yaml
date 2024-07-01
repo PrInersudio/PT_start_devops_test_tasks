@@ -1,0 +1,78 @@
+- name: Add postgresql Apt signing key.
+  apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+
+- name: Add postgresql repository into sources list.
+  apt_repository:
+    repo: "deb https://apt.postgresql.org/pub/repos/apt {{ debian_codename }}-pgdg main"
+    state: present
+    filename: pgdg
+
+- name: Update apt cache.
+  apt:
+    update_cache: yes
+    cache_valid_time: 600
+
+- name: Install postgresql-16.
+  apt:
+    pkg:
+      - postgresql-16
+      - python3-psycopg2
+
+- name: Start postgresql service, if not started.
+  ansible.builtin.service:
+    name: postgresql@16-main.service
+    state: started
+
+- name: Enable postgresql service, and not touch the state.
+  ansible.builtin.service:
+    name: postgresql@16-main.service
+    enabled: yes
+
+- name: Get postgresql.conf path
+  postgresql_query:
+    db: postgres
+    query: SHOW config_file;
+  become: true
+  become_user: postgres
+  register: config_file_path
+
+- name: Set postgres configuration in postgresql.conf.
+  lineinfile:
+    path: "{{ config_file_path.query_result[0].config_file }}"
+    regexp: '^[#\s]*{{ item.param_name }}\s*='
+    line: "{{ item.param_name }} = {{ item.param_value }}"
+    state: present
+  with_items:
+    - {param_name: logging_collector, param_value: on}
+    - {param_name: port, param_value: "{{ postgresql_port }}" }
+    - {param_name: listen_addresses, param_value: "'{{ postgresql_listen_addresses }}'" }
+
+- name: Get pg_hba_dest
+  postgresql_query:
+    db: postgres
+    query: SHOW hba_file;
+  become: true
+  become_user: postgres
+  register: pg_hba_dest
+
+- name: Apply pb_hba.conf from template
+  template:
+    src: pg_hba.conf
+    dest: '{{pg_hba_dest.query_result[0].hba_file}}'
+    owner: postgres
+    group: postgres
+
+- name: Create postgresql user.
+  postgresql_user:
+    name: "{{ postgres_user }}"
+    password: "{{ postgres_password }}"
+    role_attr_flags: "{{ postgres_role }}"
+  become: true
+  become_user: postgres
+
+- name: Restart postgresql service, in all cases.
+  ansible.builtin.service:
+    name: postgresql@16-main.service
+    state: restarted

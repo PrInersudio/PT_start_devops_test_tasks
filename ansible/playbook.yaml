@@ -1,0 +1,13 @@
+- name: debian10_ssh_configuration
+  hosts: debian10_postgresql16_ssh_unconfigured
+  become: true
+  roles:
+    - configure_ssh
+
+- name: debian10_postgresql16_setup
+  hosts: debian10_postgresql16
+  become: true
+  roles:
+    - update_system
+    - configure_postgresql
+    - configure_ufw

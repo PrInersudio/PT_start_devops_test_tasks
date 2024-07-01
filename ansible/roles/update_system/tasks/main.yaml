@@ -1,0 +1,18 @@
+- name: Update apt cache.
+  apt:
+    update_cache: yes
+    cache_valid_time: 600
+
+# Согласно https://github.com/georchestra/ansible/issues/55 это должно решить проблему с переключением
+# между пользователями
+- name: Install acl.
+  apt:
+    pkg:
+      - acl
+
+- name: Upgrade packages.
+  apt:
+    upgrade: dist
+
+- name: Reboot server.
+  reboot:

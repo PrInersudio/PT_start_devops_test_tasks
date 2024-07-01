@@ -1,0 +1,33 @@
+- name: Download ufw.
+  apt:
+    pkg:
+      - ufw
+
+- name: Set logging.
+  community.general.ufw:
+    logging: 'on'
+
+- name: Limit SSH.
+  community.general.ufw:
+    rule: limit
+    port: "{{ ansible_port }}"
+
+
+- name: Allow postgresql port.
+  community.general.ufw:
+    rule: allow
+    port: "{{ postgresql_port }}"
+
+- name: Deny access to all incoming traffic.
+  community.general.ufw:
+    direction: in
+    rule: deny
+
+- name: Allow access to all outgoing traffic.
+  community.general.ufw:
+    direction: out
+    rule: allow
+
+- name: Enable UFW.
+  community.general.ufw:
+    state: enabled
